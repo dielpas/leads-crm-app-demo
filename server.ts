@@ -234,20 +234,24 @@ async function startServer() {
       return res.status(400).json({ error: "Search query is required" });
     }
 
+    if (query.length > 100) {
+      return res.status(400).json({ error: "Search query is too long (max 100 characters)" });
+    }
+
     try {
-      const sql = `SELECT * FROM leads WHERE name LIKE '%${query}%' OR company LIKE '%${query}%' OR email LIKE '%${query}%'`;
+      const sql = `SELECT * FROM leads WHERE name LIKE ? OR company LIKE ? OR email LIKE ? LIMIT 50`;
+      const searchTerm = `%${query}%`;
 
-      console.log(`[search] Executing query: ${sql}`);
+      console.log(`[search] Executing query for: ${query}`);
 
-      const results = db.prepare(sql).all();
+      const results = db.prepare(sql).all(searchTerm, searchTerm, searchTerm);
 
       console.log(`[search] Found ${results.length} results for query: ${query}`);
       res.json(results);
     } catch (error: any) {
-      console.log(`[search] Error executing search: ${error.message}`);
+      console.error(`[search] Error executing search: ${error.message}`);
       res.status(500).json({
         error: "Search failed",
-        details: error.message,
       });
     }
   });
